@@ -1,0 +1,16 @@
+Monitoring setup with docker-compose Series' Articles
+
+1.-Monitoring setup with docker-compose - Part 1: Prometheus
+https://dev.to/ablx/minimal-prometheus-setup-with-docker-compose-56mp
+
+2.-Monitoring setup with docker-compose - Part 2: Grafana
+https://dev.to/ablx/monitoring-setup-with-docker-compose-part-2-grafana-385b
+
+3.-Monitoring setup with docker-compose - Part 3: Alertmanager
+https://dev.to/ablx/monitoring-setup-with-docker-compose-part-3-alertmanager-35ln
+
+4.-React faster: Forward Prometheus Alerts to Teams
+https://dev.to/ablx/react-faster-forward-prometheus-alerts-to-teams-4k1k
+
+5.-Node Exporter
+https://medium.com/@gabrielemorgante/vm-monitoring-using-node-exporter-prometheus-and-grafana-898b8c44e795
