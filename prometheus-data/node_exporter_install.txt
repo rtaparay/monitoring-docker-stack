@@ -1,0 +1,23 @@
+==========================================================================================================================================
+## Node exporter setup linux
+==========================================================================================================================================
+Download and execute Node Exporter:
+
+wget https://github.com/prometheus/node_exporter/releases/download/v1.3.1/node_exporter-1.3.1.linux-amd64.tar.gz
+tar xvfz node_exporter-1.3.1.linux-amd64.tar.gz
+./node_exporter
+Verify that the Node Exporter script is monitoring correctly the Virtual Machine executing the following command from inside the VM:
+
+curl http://localhost:9100/metrics
+You should see an output like this:
+==========================================================================================================================================
+## Node exporter Windows
+==========================================================================================================================================
+
+
+==========================================================================================================================================
+## Node exporter docker
+==========================================================================================================================================
+sudo docker run -d --name=node-exporter -p 9100:9100 --net="back-tier" quay.io/prometheus/node-exporter:latest
+sudo docker run -d --name=node-exporter -p 9100:9100 quay.io/prometheus/node-exporter:latest
+==========================================================================================================================================
