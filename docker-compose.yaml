@@ -4,14 +4,15 @@ networks:
   front-tier:
   back-tier:
 
+# ls /var/lib/docker/volumes
 volumes:
   alertmanager-data: {}
   prometheus-data: {}
   grafana-data: {}
-  
-services:
+  promtail-data: {}
 
-  # SERVICIO DE GRAFANA
+services:
+  # SERVICIO DE GRAFANA - visualización de métricas
   grafana:
     container_name: grafana
     image: grafana/grafana:11.0.0
@@ -29,7 +30,7 @@ services:
       - front-tier
     restart: always
 
-  # SERVICIO DE PROMETHEUS
+  # SERVICIO DE PROMETHEUS - almacenamiento para métricas, obtener métricas de cadvisor
   prometheus:
     container_name: prometheus
     image: prom/prometheus:v2.34.0
@@ -37,10 +38,11 @@ services:
       - ./prometheus-data/:/etc/prometheus/
       - prometheus-data:/prometheus
     command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
-      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - "--web.enable-lifecycle" # para que pueda recargar el archivo de configuración de Promethuse mientras se está ejecutando en lugar de tener que reiniciar el contenedor
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
     ports:
       - 9090:9090
     links:
@@ -49,30 +51,29 @@ services:
       - back-tier
     restart: always
 
-  # SERVICIO DE NODE-EXPORTER
+  # SERVICIO DE NODE-EXPORTER - exporta métricas de nodos
   node-exporter:
     container_name: node-exporter
     image: quay.io/prometheus/node-exporter:latest
     pid: host
-    command: 
-      - '--path.rootfs=/host'
-    #   - '--path.procfs=/host/proc' 
+    command:
+      - "--path.rootfs=/host"
+    #   - '--path.procfs=/host/proc'
     #   - '--path.sysfs=/host/sys'
     #   - --collector.filesystem.ignored-mount-points
     #   - "^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)($$|/)"
     ports:
       - 9100:9100
-    network_mode: host
     networks:
       - back-tier
     restart: always
-    volumes:
-    #   - /proc:/host/proc:ro
-    #   - /sys:/host/sys:ro
-    #   - /:/rootfs:ro
-      - /:/host:ro,rslave
+    # volumes:
+      #   - /proc:/host/proc:ro
+      #   - /sys:/host/sys:ro
+      #   - /:/rootfs:ro
+      # - /:/host:ro,rslave
 
-  # ALERTAS DE PROMETHEUS
+  # ALERTAS DE PROMETHEUS - envía alertas a través de correo electrónico o webhook
   alertmanager:
     container_name: alertmanager
     image: prom/alertmanager:v0.23.0
@@ -84,10 +85,10 @@ services:
       - back-tier
     restart: always
     command:
-      - '--config.file=/etc/alertmanager/alertmanager.yml'
-      - '--storage.path=/alertmanager'
-  
-  # SERVICIO CADVISOR: PARA MONITOREAR CONTENEDORES
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+      - "--storage.path=/alertmanager"
+
+  # SERVICIO CADVISOR: exporta métricas de contenedores acoplables en ejecución
   cadvisor:
     container_name: cadvisor
     image: google/cadvisor:v0.33.0
@@ -95,7 +96,7 @@ services:
     #   - /:/rootfs:ro
     #   - /var/run:/var/run:rw
     #   - /sys:/sys:ro
-      # - /var/lib/docker/:/var/lib/docker:ro
+    # - /var/lib/docker/:/var/lib/docker:ro
     ports:
       - 8080:8080
     networks:
@@ -111,5 +112,28 @@ services:
       PROM2TEAMS_CONNECTOR: "https://interbankpe.webhook.office.com/webhookb2/c5e36976-0e9a-4fe1-8e7f-b885310b115c@360bc517-7aac-4c17-9907-4c5f13a12289/IncomingWebhook/1cfdb84f13f84b5f904adeb24e9bd071/c75235ae-9234-4357-aeea-5e1682272cd0"
     ports:
       - 8089:8089
+    networks:
+      - back-tier
+
+  # LOKI - almacena registros
+  loki:
+    container_name: loki
+    image: grafana/loki:master
+    command: -config.file=/etc/loki/local-config.yaml
+    ports:
+      - "3100:3100"
+    networks:
+      - back-tier
+      - front-tier
+
+  # PROMTAIL - extrae registros de su /var/log directorio y los coloca en loki
+  promtail:
+    container_name: promtail
+    depends_on:
+      - loki
+    image: grafana/promtail:master
+    volumes:
+      - /var/log:/var/log
+    command: -config.file=/etc/promtail/docker-config.yaml
     networks:
       - back-tier
